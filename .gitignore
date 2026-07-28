@@ -1,0 +1,14 @@
+/vendor/
+/var/cache/*
+/var/log/*
+!/var/cache/.gitkeep
+!/var/log/.gitkeep
+/.env
+/.env.local
+/rr
+/rr.exe
+/.php-cs-fixer.cache
+/.phpunit.result.cache
+/.phpunit.cache
+/.deptrac.cache
+/docker-compose.override.yml

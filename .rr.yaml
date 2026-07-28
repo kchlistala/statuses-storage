@@ -1,0 +1,56 @@
+version: "3"
+
+rpc:
+  listen: tcp://127.0.0.1:6001
+
+server:
+  command: "php bin/worker.php"
+  relay: "pipes"
+
+http:
+  address: 0.0.0.0:8080
+  middleware: ["gzip"]
+  pool:
+    num_workers: 4
+    supervisor:
+      max_worker_memory: 128
+
+kv:
+  local-cache:
+    driver: memory
+    config: {}
+
+kafka:
+  brokers: ["${KAFKA_BROKERS}"]
+  ping:
+    timeout: "10s"
+
+jobs:
+  pipeline_size: 100000
+  pool:
+    num_workers: 2
+  pipelines:
+    app-events-consume:
+      driver: kafka
+      config:
+        priority: 1
+        auto_create_topics_enable: false
+        consumer_options:
+          topics: ["${KAFKA_CONSUME_TOPIC}"]
+        group_options:
+          group_id: "status-storage-final"
+    app-events-produce:
+      driver: kafka
+      config:
+        priority: 1
+        auto_create_topics_enable: false
+        producer_options: {}
+
+  # Only pipelines listed here are actively consumed by RR.
+  # "app-events-produce" is intentionally NOT listed - it exists only so
+  # PHP can dispatch (produce) messages to it via Spiral\RoadRunner\Jobs\Jobs.
+  consume: ["app-events-consume"]
+
+logs:
+  mode: production
+  level: info

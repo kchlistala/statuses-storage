@@ -1,0 +1,22 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use App\Kernel\Console\ConsoleApplicationFactory;
+use App\Kernel\ContainerFactory;
+use Symfony\Component\Dotenv\Dotenv;
+
+$projectDir = \dirname(__DIR__);
+
+(new Dotenv())->bootEnv($projectDir . '/.env');
+
+$container = (new ContainerFactory(
+    projectDir: $projectDir,
+    environment: $_SERVER['APP_ENV'] ?? 'dev',
+    debug: (bool) ($_SERVER['APP_DEBUG'] ?? false),
+))->create();
+
+exit($container->get(ConsoleApplicationFactory::class)->create()->run());

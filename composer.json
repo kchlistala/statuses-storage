@@ -1,0 +1,67 @@
+{
+    "name": "aureox/status-storage-final",
+    "description": "Status storage service (PHP 8.4, RoadRunner, PostgreSQL, Kafka)",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.4",
+        "spiral/roadrunner-cli": "^2.6",
+        "spiral/roadrunner-http": "^3.5",
+        "spiral/roadrunner-kv": "^4.0",
+        "spiral/roadrunner-jobs": "^4.0",
+        "spiral/roadrunner-worker": "^3.5",
+        "symfony/dependency-injection": "^7.1",
+        "symfony/config": "^7.1",
+        "symfony/yaml": "^7.1",
+        "symfony/console": "^7.1",
+        "symfony/dotenv": "^7.1",
+        "doctrine/dbal": "^4.0",
+        "doctrine/migrations": "^3.8",
+        "league/route": "^6.1",
+        "nyholm/psr7": "^1.8",
+        "nyholm/psr7-server": "^1.1",
+        "monolog/monolog": "^3.7",
+        "psr/log": "^3.0"
+    },
+    "require-dev": {
+        "deptrac/deptrac": "^3.0",
+        "friendsofphp/php-cs-fixer": "^3.64",
+        "phpstan/phpstan": "^1.12",
+        "phpstan/phpstan-doctrine": "^1.5",
+        "phpstan/phpstan-phpunit": "^1.4",
+        "phpstan/phpstan-strict-rules": "^1.6",
+        "phpunit/phpunit": "^11.3",
+        "rector/rector": "^1.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/",
+            "App\\Tools\\": "tools/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "App\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": false
+        },
+        "platform": {
+            "php": "8.4.0"
+        }
+    },
+    "scripts": {
+        "phpstan": "phpstan analyse",
+        "cs-check": "php-cs-fixer fix --dry-run --diff",
+        "cs-fix": "php-cs-fixer fix",
+        "rector": "rector process",
+        "rector-dry": "rector process --dry-run",
+        "deptrac": "deptrac analyse",
+        "test": "phpunit"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

@@ -1,0 +1,25 @@
+includes:
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+
+parameters:
+    level: max
+    paths:
+        - src
+        - tests
+        - tools
+    excludePaths:
+        # Contains a fixture that is intentionally in violation of ModuleBoundaryRule;
+        # exercised by tests/Unit/PHPStanRules/ModuleBoundaryRuleTest.php instead.
+        - tests/PHPStan/Fixtures/*
+    checkMissingIterableValueType: true
+    treatPhpDocTypesAsCertain: false
+    tmpDir: var/cache/phpstan
+
+services:
+    -
+        class: App\Tools\PHPStanRules\ModuleBoundaryRule
+        tags:
+            - phpstan.rules.rule

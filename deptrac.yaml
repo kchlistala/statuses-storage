@@ -1,0 +1,46 @@
+deptrac:
+    paths:
+        - ./src
+    exclude_files:
+        - '#.*Tests?.*#'
+
+    layers:
+        - name: Kernel
+          collectors:
+              - type: directory
+                value: src/Kernel/.*
+
+        - name: SharedPublic
+          collectors:
+              - type: directory
+                value: src/Shared/[^/]+/Public/.*
+
+        - name: SharedInternal
+          collectors:
+              - type: directory
+                value: src/Shared/[^/]+/Internal/.*
+
+        - name: ModulePublic
+          collectors:
+              - type: directory
+                value: src/Module/.*/Public/.*
+
+    # Generic, one-to-many rules that don't require enumerating every module:
+    #   - nobody outside Shared/<X> may depend on Shared/<X>/Internal
+    #   - modules may only depend on Shared's Public namespace, never Shared/Internal directly
+    #     without going through the Public contract, and never another module's Internal at all
+    #   - Kernel only ever depends on Public contracts
+    #
+    # Full N x N isolation between individual modules' Internal namespaces (e.g. Module/Status/Order
+    # must not depend on Module/Status/OrderItem/Internal) is NOT expressed here - Deptrac has no way
+    # to do that generically without enumerating every module pair. That isolation is instead enforced
+    # automatically, without per-module configuration, by the custom PHPStan rule at
+    # tools/PHPStanRules/ModuleBoundaryRule.php (see phpstan.neon). See CLAUDE.md for details.
+    ruleset:
+        Kernel:
+            - SharedPublic
+            - ModulePublic
+        ModulePublic:
+            - SharedPublic
+        SharedInternal:
+            - SharedPublic
