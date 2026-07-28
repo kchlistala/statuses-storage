@@ -20,10 +20,26 @@ use PHPStan\Rules\RuleErrorBuilder;
  * `App\Module\Status\OrderItem\...` or in any other module is rejected, and no per-module
  * configuration is needed as new modules are added.
  *
+ * PHPUnit test classes under the `Unit`/`Integration` testsuite roots (see phpunit.xml.dist)
+ * are evaluated against the src-equivalent namespace they mirror: a test at
+ * `tests/Unit/Module/Status/Order/Internal/Kafka/FooTest.php`
+ * (`App\Tests\Unit\Module\Status\Order\Internal\Kafka\FooTest`) is treated as if it were
+ * `App\Module\Status\Order\Internal\Kafka\FooTest`, so it may reach into the Internal
+ * namespace of the module it belongs to and tests - exactly like production code under that
+ * namespace would - while still being rejected for any other module's Internal namespace.
+ * This does not affect `tests/PHPStan/Fixtures/*`, which is a self-contained rule sandbox
+ * excluded from the main analysis (see phpstan.neon) and analysed separately via
+ * tests/PHPStan/fixtures.neon.
+ *
  * @implements Rule<Node\Name\FullyQualified>
  */
 final class ModuleBoundaryRule implements Rule
 {
+    private const array TEST_SUITE_PREFIXES = [
+        'App\Tests\Unit\\',
+        'App\Tests\Integration\\',
+    ];
+
     #[\Override]
     public function getNodeType(): string
     {
@@ -49,7 +65,9 @@ final class ModuleBoundaryRule implements Rule
             return [];
         }
 
-        if ($callerClass === $referencedClass || str_starts_with($callerClass, $owningPrefix.'\\')) {
+        $effectiveCallerClass = self::resolveEffectiveClassName($callerClass);
+
+        if ($effectiveCallerClass === $referencedClass || str_starts_with($effectiveCallerClass, $owningPrefix.'\\')) {
             return [];
         }
 
@@ -64,5 +82,16 @@ final class ModuleBoundaryRule implements Rule
                 ->identifier('app.internalBoundary')
                 ->build(),
         ];
+    }
+
+    private static function resolveEffectiveClassName(string $className): string
+    {
+        foreach (self::TEST_SUITE_PREFIXES as $prefix) {
+            if (str_starts_with($className, $prefix)) {
+                return 'App\\'.substr($className, \strlen($prefix));
+            }
+        }
+
+        return $className;
     }
 }

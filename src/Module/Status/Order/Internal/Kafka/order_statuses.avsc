@@ -1,0 +1,23 @@
+{
+  "type": "record",
+  "name": "OrderStatuses",
+  "namespace": "app.kafka.events",
+  "fields": [
+    {"name": "orderId", "type": "int"},
+    {
+      "name": "statuses",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "StatusEntry",
+          "fields": [
+            {"name": "type", "type": "string"},
+            {"name": "value", "type": "string"}
+          ]
+        }
+      }
+    },
+    {"name": "occuredAt", "type": "string"}
+  ]
+}
