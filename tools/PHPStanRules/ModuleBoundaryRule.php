@@ -65,7 +65,7 @@ final class ModuleBoundaryRule implements Rule
             return [];
         }
 
-        $effectiveCallerClass = self::resolveEffectiveClassName($callerClass);
+        $effectiveCallerClass = $this->resolveEffectiveClassName($callerClass);
 
         if ($effectiveCallerClass === $referencedClass || str_starts_with($effectiveCallerClass, $owningPrefix.'\\')) {
             return [];
@@ -84,7 +84,7 @@ final class ModuleBoundaryRule implements Rule
         ];
     }
 
-    private static function resolveEffectiveClassName(string $className): string
+    private function resolveEffectiveClassName(string $className): string
     {
         foreach (self::TEST_SUITE_PREFIXES as $prefix) {
             if (str_starts_with($className, $prefix)) {

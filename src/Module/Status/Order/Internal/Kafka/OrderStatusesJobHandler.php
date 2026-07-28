@@ -57,7 +57,7 @@ final readonly class OrderStatusesJobHandler implements JobHandlerInterface
         );
 
         new OrderStatusesEvent(
-            orderId: self::requireInt($datum['orderId']),
+            orderId: $this->requireInt($datum['orderId']),
             statuses: $statuses,
             occuredAt: new \DateTimeImmutable(self::requireString($datum['occuredAt'])),
         );
@@ -72,7 +72,7 @@ final readonly class OrderStatusesJobHandler implements JobHandlerInterface
         return $value;
     }
 
-    private static function requireInt(mixed $value): int
+    private function requireInt(mixed $value): int
     {
         if (!\is_int($value)) {
             throw new \RuntimeException('Expected decoded Avro field to be an int.');
