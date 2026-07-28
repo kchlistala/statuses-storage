@@ -94,6 +94,9 @@ docker compose up -d --build
 docker compose run --rm migrate
 ```
 
+Jednym poleceniem: `make up` (patrz `Makefile` — `make help` pokazuje pełną listę celów,
+w tym skróty do `composer phpstan`/`test`/`deptrac`/itd. jako `make qa`).
+
 Serwisy: `app` (RR, host port `8090` → domyślnie zmapowany z 8080 w kontenerze — zmień przez
 `APP_HTTP_PORT`, jeśli 8090 koliduje z czymś innym), `postgres` (host port `5433`, w środku
 5432 — zmień przez `POSTGRES_PORT`), `kafka` (KRaft, bez Zookeepera, port `9092`, zmienna
