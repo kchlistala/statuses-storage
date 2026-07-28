@@ -12,6 +12,14 @@ use PHPUnit\Framework\TestCase;
  * Runs PHPStan (with only ModuleBoundaryRule enabled) against fixture modules to make sure
  * the rule actually flags cross-module Internal usage and leaves Public usage alone.
  *
+ * The rule's exemption for `Unit`/`Integration` testsuite classes (a test may reach into the
+ * Internal namespace of the module/shared component it belongs to) is not covered by a fixture
+ * here: fixtures live under `App\Tests\PHPStan\Fixtures\*`, which never matches the `Unit`/
+ * `Integration` testsuite prefixes the exemption checks for, so it cannot represent that case.
+ * That behaviour is instead exercised by the project's real tests that target real Internal
+ * classes (e.g. tests/Unit/Module/Status/Order/Internal/Kafka/OrderStatusesJobHandlerTest.php),
+ * which fail the full `composer phpstan` run if the exemption regresses.
+ *
  * @see ModuleBoundaryRule
  *
  * @internal

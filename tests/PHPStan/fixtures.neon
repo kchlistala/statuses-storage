@@ -2,6 +2,7 @@ parameters:
     level: 8
     paths:
         - Fixtures
+        - ../../tools/PHPStanRules
     tmpDir: ../../var/cache/phpstan-fixtures
     bootstrapFiles:
         - ../../vendor/autoload.php

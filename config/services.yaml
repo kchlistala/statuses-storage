@@ -44,6 +44,9 @@ services:
     arguments:
       $handlers: !tagged_iterator app.kafka_job_handler
 
+  # Avro (local embedded schema, no schema registry)
+  App\Shared\Avro\Public\AvroDecoderInterface: '@App\Shared\Avro\Internal\AvroSchemaDecoder'
+
   # Database (Doctrine DBAL - no ORM)
   Doctrine\DBAL\Connection:
     factory: ['App\Shared\Database\Internal\ConnectionFactory', 'create']
