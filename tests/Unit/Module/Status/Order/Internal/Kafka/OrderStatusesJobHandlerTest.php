@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Module\Status\Order\Internal\Kafka;
 
+use App\Module\Status\Order\Internal\Domain\OrderStatusesAggregate;
 use App\Module\Status\Order\Internal\Kafka\OrderStatusesJobHandler;
+use App\Module\Status\Order\Internal\Repository\OrderStatusesRepository;
 use App\Shared\Avro\Internal\AvroSchemaDecoder;
+use App\Shared\Cache\Public\CacheInterface;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Spiral\RoadRunner\Jobs\Task\ReceivedTaskInterface;
@@ -16,23 +19,103 @@ use Spiral\RoadRunner\Jobs\Task\ReceivedTaskInterface;
 #[CoversNothing]
 final class OrderStatusesJobHandlerTest extends TestCase
 {
+    private const string CACHE_KEY = 'order-statuses:42';
+
     public function testSupportsOnlyTheOrderStatusesTaskName(): void
     {
-        $handler = new OrderStatusesJobHandler(new AvroSchemaDecoder());
+        $handler = $this->createHandler(
+            $this->createMock(CacheInterface::class),
+            $this->createMock(OrderStatusesRepository::class),
+        );
 
         self::assertTrue($handler->supports('OrderStatuses'));
         self::assertFalse($handler->supports('SomethingElse'));
     }
 
-    public function testHandleDecodesAValidAvroPayloadWithoutThrowing(): void
+    public function testHandleMergesIntoCachedAggregateWithoutTouchingRepository(): void
     {
-        $handler = new OrderStatusesJobHandler(new AvroSchemaDecoder());
+        $cached = OrderStatusesAggregate::fromStatusesByType(42, [
+            'PAYMENT' => 'PENDING',
+            'SHIPMENT' => 'DISPATCHED',
+        ]);
 
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->with(self::CACHE_KEY)->willReturn($cached);
+
+        $repository = $this->createMock(OrderStatusesRepository::class);
+        $repository->expects(self::never())->method('find');
+
+        $cache->expects(self::once())
+            ->method('set')
+            ->with(self::CACHE_KEY, self::callback(
+                static fn (OrderStatusesAggregate $aggregate): bool => [
+                    'PAYMENT' => 'PAID',
+                    'SHIPMENT' => 'DISPATCHED',
+                ] === $aggregate->getStatusesByType(),
+            ))
+        ;
+
+        $handler = $this->createHandler($cache, $repository);
+        $handler->handle($this->createTask());
+    }
+
+    public function testHandleFallsBackToRepositoryOnCacheMiss(): void
+    {
+        $stored = OrderStatusesAggregate::fromStatusesByType(42, [
+            'PAYMENT' => 'PENDING',
+        ]);
+
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->with(self::CACHE_KEY)->willReturn(null);
+
+        $repository = $this->createMock(OrderStatusesRepository::class);
+        $repository->expects(self::once())->method('find')->with(42)->willReturn($stored);
+
+        $cache->expects(self::once())
+            ->method('set')
+            ->with(self::CACHE_KEY, self::callback(
+                static fn (OrderStatusesAggregate $aggregate): bool => [
+                    'PAYMENT' => 'PAID',
+                ] === $aggregate->getStatusesByType(),
+            ))
+        ;
+
+        $handler = $this->createHandler($cache, $repository);
+        $handler->handle($this->createTask());
+    }
+
+    public function testHandleCreatesNewAggregateWhenNeitherCacheNorRepositoryHaveIt(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->with(self::CACHE_KEY)->willReturn(null);
+
+        $repository = $this->createMock(OrderStatusesRepository::class);
+        $repository->expects(self::once())->method('find')->with(42)->willReturn(null);
+
+        $cache->expects(self::once())
+            ->method('set')
+            ->with(self::CACHE_KEY, self::callback(
+                static fn (OrderStatusesAggregate $aggregate): bool => [
+                    'PAYMENT' => 'PAID',
+                ] === $aggregate->getStatusesByType(),
+            ))
+        ;
+
+        $handler = $this->createHandler($cache, $repository);
+        $handler->handle($this->createTask());
+    }
+
+    private function createHandler(CacheInterface $cache, OrderStatusesRepository $repository): OrderStatusesJobHandler
+    {
+        return new OrderStatusesJobHandler(new AvroSchemaDecoder(), $cache, $repository);
+    }
+
+    private function createTask(): ReceivedTaskInterface
+    {
         $payload = $this->encode([
             'orderId' => 42,
             'statuses' => [
                 ['type' => 'PAYMENT', 'value' => 'PAID'],
-                ['type' => 'SHIPMENT', 'value' => 'DISPATCHED'],
             ],
             'occuredAt' => '2026-07-28T10:15:00+02:00',
         ]);
@@ -41,9 +124,7 @@ final class OrderStatusesJobHandlerTest extends TestCase
         $task->method('getName')->willReturn('OrderStatuses');
         $task->method('getPayload')->willReturn($payload);
 
-        $handler->handle($task);
-
-        $this->addToAssertionCount(1);
+        return $task;
     }
 
     /**
